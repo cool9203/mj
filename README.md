@@ -1,10 +1,15 @@
 # mj
 one system and small AI. and i testing and continuous writing...
+
 i updated to github for Revision control
 
 so if you need code can take out
 
 and i english very bad!!
+
+thanks nlohmann/json(https://github.com/nlohmann/json)
+
+  i used json is he json.
 
 MIT License
 
