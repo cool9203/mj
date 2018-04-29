@@ -17,7 +17,7 @@ private:
 	int card[17] = { 0 };
 	int player_number = -1;
 	int card_times[44]; //牌的出現機率
-	std::vector<int> gun_card, need_card,out_card;
+	std::vector<int> gun_card, need_card, need_card_index, out_card;
 
 	int cptr = 0;
 
@@ -196,6 +196,7 @@ public:
 		sock.send(j);
 		wait(sock);
 
+
 	}
 
 
@@ -226,6 +227,7 @@ public:
 		int cptr = 0;
 		int player_number, outcard;
 		bool who = false;
+		bool setcardtimes = false;
 
 		//根據讀到的json來作出指定的事情
 		while (true) {
@@ -245,9 +247,11 @@ public:
 				//std::cout << it.key() << " : " << it.value() << "\n";
 				if (it.key() == "sendcard") {
 					card[cptr] = it.value();
+					set_mycardtimes(card[cptr]);
 					//std::cout << "get card:" << card[cptr] << std::endl;
 					cptr++;
 					//std::cout << "player[" << player_number << "]:" << "cptr=" << cptr << std::endl;
+
 				}
 				else if (it.key() == "do") { //要作出回應,看要吃碰槓胡,如果都沒事就sned json[no]
 					sendpolling(sock, outcard);
@@ -267,6 +271,7 @@ public:
 				}
 				else if (it.key() == "outcard") { //其他玩家丟牌
 					outcard = it.value();
+					set_mycardtimes(outcard);
 
 				}
 				else if (it.key() == "eatcard") { //其他玩家吃牌
@@ -394,6 +399,12 @@ public:
 				continue;
 			card_times[card[i]]--;
 		}
+	}
+
+	void set_mycardtimes(int card) {
+		if (!card)
+			return;
+		card_times[card]--;
 	}
 
 
