@@ -1,14 +1,19 @@
 # mj
 one system and small AI. and i testing and continuous writing...
+
 i updated to github for Revision control
 
 so if you need code can take out
 
 and i english very bad!!
 
+thanks nlohmann/json(https://github.com/nlohmann/json)
+
+  i used json is he json.
+
 MIT License
 
-Copyright (c) [year] [fullname]
+Copyright (c) [2018] [cool9203]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
