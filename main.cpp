@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include "mjcard.h"
 #include "MJsystem.cpp"
 #include "Player.cpp"
 #include "myserversocket.h"
@@ -72,10 +73,6 @@ json iarrtojson(int *data, int datalen, const char *main_json_name, const char *
 }
 
 
-
-
-
-
 int main(int argc, char *argv[]) {
 	//link dll
 	WSADATA wsaData;
@@ -85,6 +82,11 @@ int main(int argc, char *argv[]) {
 		system("PAUSE");
 		return 0;
 	}
+
+	int card[5] = { 1,2,3,4,5 };
+	mjcard mc(card, 5);
+	
+	/*
 	while (true) {
 		try {
 			std::thread *s = new std::thread(&MJ::MJSystem::start, MJ::MJSystem()); //https://stackoverflow.com/questions/10673585/start-thread-with-member-function
@@ -107,8 +109,7 @@ int main(int argc, char *argv[]) {
 		if (p == 1)
 			break;
 	}
-	
-	
+	*/
 	
 
 	system("PAUSE");

@@ -113,6 +113,8 @@
   <ItemGroup>
     <ClCompile Include="clientsocket.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mj.cpp" />
+    <ClCompile Include="mjcard.cpp" />
     <ClCompile Include="MJSystem.cpp" />
     <ClCompile Include="myserversocket.cpp" />
     <ClCompile Include="mysocket.cpp" />
@@ -121,6 +123,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clientsocket.h" />
+    <ClInclude Include="mj.h" />
+    <ClInclude Include="mjcard.h" />
     <ClInclude Include="myserversocket.h" />
     <ClInclude Include="mysocket.h" />
     <ClInclude Include="socklink.h" />

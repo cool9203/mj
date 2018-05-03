@@ -708,149 +708,171 @@ namespace MJ{
 						}
 					}
 				}
+
 				//one check he self who
 				if (who == true) { //自摸成立
 					break;
 				}
 
 
-				//先傳main_player丟的牌給其他3位玩家
-				for (int i = 0; i < 4; i++) {
-					if (i == main_player)
-						continue;
-
-					json j;
-					j["outcard"] = outcard;
-					client.at(i)->send(j);
-					wait(client, i);
-
-				}
-
-				
-	#pragma region polling
-				//輪詢-問各個使用者是否需要作事(吃碰槓胡)
-				int eat = -1, pung = -1, gun = -1, who = -1;
-				vector<json> r;
-				for (int i = 0; i < 4; i++) {
-					json tempjs;
-					r.push_back(tempjs);
-				}
-				
-				//先問各個玩家想執行的動作,並用vector client[index]紀錄下來
-				for (int i = 1; i < 4; i++) {
-					int number = (main_player + i) % 4;
-					json j,d;
-					j["do"];
-					d["done"];
-					//傳 [do] 讓他了解現在是問他
-					client.at(number)->send(j);
-					wait(client, number);
-
-					//收執行動作的資訊
-					while (true) { 
-						client.at(number)->read(r.at(number)); //read
-						if (r[number].is_null())
+				while (true) { //連續吃碰槓while
+					bool player_do = false;
+					//先傳main_player丟的牌給其他3位玩家
+					for (int i = 0; i < 4; i++) {
+						if (i == main_player)
 							continue;
 
-						client.at(number)->send(d); //sned [done]
-						break;
+						json j, secj;
+						secj["playernumber"] = main_player;
+						secj[getstr("card", 1)] = outcard;
+						j["outcard"] = secj;
+						client.at(i)->send(j);
+						wait(client, i);
+
+					}
+					//輪詢-問各個使用者是否需要作事(吃碰槓胡)
+					int deat = -1, dpung = -1, dgun = -1, dwho = -1;
+					vector<json> r;
+					for (int i = 0; i < 4; i++) {
+						json tempjs;
+						r.push_back(tempjs);
 					}
 
-					//處理收到的資訊,來看他是想做什麼事
-					int thing = getjsonmessage_polling(r[number]);
-					switch (thing) {
-					case 0: //no
-						break;
-					case 1: //eat
-						if (number + 1 != main_player) //這邊還要多傳出1個訊息給client,讓他知道他傳錯了 or ...
-							break;
-						eat = number;
-						break;
-					case 2: //pung
-						if (pung == -1)
-							pung = number;
-						break;
-					case 3: //gun
-						if (gun == -1)
-							gun = number;
-						break;
-					case 4: //who
-						if (who == -1)
-							who = number;
-						break;
-					}
-				
-				}
-				
-				//找完吃碰槓胡的順序後，決定下個main_player和檢查client傳過來的資訊，來確定是否是正確的動作
-				if (who != -1) { //有人胡牌
-					json j;
-					json::iterator it = r[who].begin();
-					//getjsonvalue(j, whocard, 16, false, "who");
-					whocard[16] = outcard;
-					if (card_check(whocard, 17) != 0) {
-						main_player = who;
-						break;
-					}
-				
-				}else if (pung != -1 || gun != -1) { //碰槓牌
-					json j;
-					int tempcard[4];
-					if (pung != -1) {
-						json::iterator it = r[pung].begin();
-						//getjsonvalue(j, whocard, 2, false, "pung");
-						if (Sendcard(tempcard[0],tempcard[1],outcard,true) == 1) {
-							main_player = pung;
-							tempcard[2] = outcard;
-							sendtoother(client, tempcard, 3, "pung", "card");
+					//先問各個玩家想執行的動作,並用vector client[index]紀錄下來
+					for (int i = 1; i < 4; i++) {
+						int number = (main_player + i) % 4;
+						json j, d;
+						j["do"];
+						d["done"];
+						//傳 [do] 讓他了解現在是問他
+						client.at(number)->send(j);
+						wait(client, number);
+
+						//收執行動作的資訊
+						while (true) {
+							client.at(number)->read(r.at(number)); //read
+							if (r[number].is_null())
+								continue;
+
+							client.at(number)->send(d); //sned [done]
 							break;
 						}
 
-					}
-					else {
-						json::iterator it = r[gun].begin();
-						//getjsonvalue(j, whocard, 3, false, "gun");
-						if (Sendcard(tempcard[0], tempcard[1], tempcard[2], outcard) == 1) {
-							main_player = gun;
-							tempcard[3] = outcard;
-							sendtoother(client, tempcard, 4, "gun", "card");
+						//處理收到的資訊,來看他是想做什麼事
+						int thing = getjsonmessage_polling(r[number]);
+						switch (thing) {
+						case 0: //no
+							break;
+						case 1: //eat
+							if (main_player != (number - 1) % 4) //這邊還要多傳出1個訊息給client,讓他知道他傳錯了 or ...
+								break;
+							deat = number;
+							break;
+						case 2: //pung
+							if (dpung == -1)
+								dpung = number;
+							break;
+						case 3: //gun
+							if (dgun == -1)
+								dgun = number;
+							break;
+						case 4: //who
+							if (dwho == -1)
+								dwho = number;
 							break;
 						}
 					}
 
-				}else if (eat != -1) { //吃牌
-					json j;
-					int tempcard[3];
-					json::iterator it = r[eat].begin();
-					//getjsonvalue(j, whocard, 2, false, "eat");
-					tempcard[2] = outcard;
-					if (Sendcard(tempcard[0], tempcard[1], outcard, false) == 1) {
-						main_player = eat;
-						sendtoother(client, tempcard, 3, "eat", "card");
+					//找完吃碰槓胡的順序後，決定下個main_player和檢查client傳過來的資訊，來確定是否是正確的動作
+					if (dwho != -1) { //有人胡牌
+						getjsonvalue(r[dwho], whocard, 16, false, "who");
+						whocard[16] = outcard;
+						if (card_check(whocard, 17) != 0) {
+							main_player = dwho;
+							who = true;
+							std::cout << "player[" << main_player << "]:who\n\n";
+							break;
+						}
+
+					}
+					else if (dpung != -1 || dgun != -1) { //碰槓牌
+						int tempcard[4];
+						if (dpung != -1) {
+							getjsonvalue(r[dpung], tempcard, 2, false, "pung");
+							std::cout << "pungcard:" << tempcard[0] << " " << tempcard[1] << " " << outcard << std::endl;
+							if (Sendcard(tempcard[0], tempcard[1], outcard, true) == 1) {
+								main_player = dpung;
+								player_do = true;
+								std::cout << "player[" << main_player << "]:pung\n\n";
+								tempcard[2] = outcard;
+								sendtoother(client, tempcard, 3, "pungcard", "card");
+							}
+
+						}
+						else {
+							getjsonvalue(r[dgun], tempcard, 3, false, "gun");
+							if (Sendcard(tempcard[0], tempcard[1], tempcard[2], outcard) == 1) {
+								main_player = dgun;
+								player_do = true;
+								tempcard[3] = outcard;
+								sendtoother(client, tempcard, 4, "guncard", "card");
+							}
+						}
+
+					}
+					else if (deat != -1) { //吃牌
+						int tempcard[3];
+						getjsonvalue(r[deat], tempcard, 2, false, "eat");
+						tempcard[2] = outcard;
+						std::cout << "eatcard:" << tempcard[0] << " " << tempcard[1] << " " << outcard << std::endl;
+						if (Sendcard(tempcard[0], tempcard[1], outcard, false) == 1) {
+							main_player = deat;
+							player_do = true;
+							std::cout << "player[" << main_player << "]:eat\n\n";
+							sendtoother(client, tempcard, 3, "eatcard", "card");
+						}
 					}
 
-				}
-				else { //都沒事,下個使用者
-					main_player = (main_player + 1) % 4;
-				}
-			
-			
+					if (player_do) {
+						//read "outcard"
+						json doj,dod;
+						dod["done"];
+						client.at(main_player)->read(doj);
+						client.at(main_player)->send(dod);
+						outcard = doj["outcard"];
+					}
+					else { //都沒事,下個使用者
+						main_player = (main_player + 1) % 4;
+						break;
+					}
 
+				}//連續吃碰槓while's
+
+				
+				 //one check he self who
+				if (who == true) { //自摸成立
+					break;
+				}
 			}//this is playing while's
-	#pragma endregion </spin>
 			
-			 
-			 //處理胡牌
-			if (who == true) {
-				/*
-				std::cout << "server whocard:";
-				for (int i = 0; i < 17; i++) {
-					std::cout << whocard[i] << " ";
+			try {
+				//處理胡牌
+				if (who == true) {
+					/*
+					std::cout << "server whocard:";
+					for (int i = 0; i < 17; i++) {
+						std::cout << whocard[i] << " ";
 
+					}
+					*/
+
+					sendtoother(client, whocard, 17, "whocard", "card");
 				}
-				*/
-
-				sendtoother(client, whocard, 17, "whocard", "card");
+			}
+			catch (...) {
+				std::cout << "get exception.\n";
+				for (int i = 0; i < 17; i++)
+					std::cout << whocard[i] << " ";
 			}
 			
 

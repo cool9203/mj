@@ -15,11 +15,13 @@ using json = nlohmann::json;
 class Player {
 private:
 	int card[17] = { 0 };
+	int whocard[17] = { 0 };
 	int player_number = -1;
 	int card_times[44]; //牌的出現機率
 	std::vector<int> gun_card, need_card, need_card_index, out_card;
 
 	int cptr = 0;
+	int who_cptr = 0;
 
 public:
 	Player() {
@@ -189,14 +191,86 @@ public:
 	}
 
 
+	int mydo(int *card, int cardlen, int *data, int datalen) {
+		int cptr = cardlen;
+		for (int i = 0; i < datalen - 1; i++) {
+			int size = cptr;
+			for (int j = 0; j < size; j++) {
+				if (card[j] == data[i]) {
+					std::swap(card[cptr], card[cptr - 1]);
+					std::swap(card[cptr], card[j]);
+					cptr--;
+					break;
+				}
+			}
+		}
+
+		card[cptr] = data[datalen - 1];
+		cptr--;
+		return cptr;
+	}
+
+
 	//如果server傳 [do] 我要做什麼事
-	void sendpolling(clientsocket &sock,int outcard) {
+	void sendpolling(clientsocket &sock,int outcard,int outplayer) {
+		
+		//處理胡牌
+		int whocard[17];
+		cpycard(card, whocard, 17);
+		whocard[cptr] = outcard;
+		if (card_check(whocard, 17)) {
+			std::cout << "你胡到別人牌了!\n";
+			json j, secj;
+			for (int i = 0; i < 17; i++) {
+				if (i == cptr)
+					continue;
+
+				secj[getstr("card", i + 1 - (i%cptr))] = whocard[i];
+			}
+			j["who"] = secj;
+			sock.send(j);
+			wait(sock);
+			return;
+		}
+
+		//處理吃碰
+		for (int i = 0; i < static_cast<int>(need_card.size());i++) {
+			json j;
+			try {
+				if (outcard == need_card.at(i)) { //別人丟的牌是我要吃碰的牌
+					if (card[need_card_index.at(i * 2)] == card[need_card_index.at(i * 2 + 1)]) { //如果是碰的話
+						std::cout << "player[" << player_number << "] want to pung.\n\n";
+						int temparr[2] = { card[need_card_index.at(i * 2)] ,card[need_card_index.at(i * 2 + 1)] };
+						j = iarrtojson(temparr, 2, "pung", "card");
+						sock.send(j);
+						wait(sock);
+					}
+					else { //不是碰那就是吃
+						std::cout << "player" << player_number << ":outplayer = " << outplayer << std::endl;
+						if (outplayer != (player_number - 1) % 4)
+							break;
+						std::cout << "player[" << player_number << "] want to eat.\n\n";
+						int temparr[2] = { card[need_card_index.at(i * 2)] ,card[need_card_index.at(i * 2 + 1)] };
+						j = iarrtojson(temparr, 2, "eat", "card");
+						sock.send(j);
+						wait(sock);
+					}
+					return;
+				}
+			}
+			catch(...){
+				std::cout << "i=" << i << std::endl;
+				std::cout << "need=" << need_card.size() << std::endl;
+				std::cout << "need_index=" << need_card_index.size() << std::endl;
+			}
+			
+		}
+		
+		//如果都不能做
 		json j;
 		j["no"];
 		sock.send(j);
 		wait(sock);
-
-
 	}
 
 
@@ -223,9 +297,8 @@ public:
 				return;
 			}
 		}
-		int card[17] = { -1 };
 		int cptr = 0;
-		int player_number, outcard;
+		int outcard, outplayer;
 		bool who = false;
 		bool setcardtimes = false;
 
@@ -254,7 +327,8 @@ public:
 
 				}
 				else if (it.key() == "do") { //要作出回應,看要吃碰槓胡,如果都沒事就sned json[no]
-					sendpolling(sock, outcard);
+					get_need_card(card, cptr);
+					sendpolling(sock, outcard, outplayer);
 
 				}
 				else if (it.key() == "youplayernumber") { //紀錄自己的玩家編號
@@ -270,16 +344,30 @@ public:
 
 				}
 				else if (it.key() == "outcard") { //其他玩家丟牌
-					outcard = it.value();
+					int tempoutcard[2];
+					outplayer = getjsonvalue(j, tempoutcard, 1, true, "outcard");
+					outcard = tempoutcard[0];
 					set_mycardtimes(outcard);
 
 				}
 				else if (it.key() == "eatcard") { //其他玩家吃牌
-
+					int eatcard[3];
+					int eatplayernumber = getjsonvalue(j, eatcard, 3, true, "eatcard");
+					std::cout << "player" << eatplayernumber << " eat.\n";
+					if (eatplayernumber == player_number) {
+						turn = true;
+						cptr = mydo(card, cptr, eatcard, 3);
+					}
 
 				}
 				else if (it.key() == "pungcard") { //其他玩家碰牌
-
+					int pungcard[3];
+					int pungplayernumber = getjsonvalue(j, pungcard, 3, true, "pungcard");
+					std::cout << "player" << pungplayernumber << " pung.\n";
+					if (pungplayernumber == player_number) {
+						turn = true;
+						cptr = mydo(card, cptr, pungcard, 3);
+					}
 
 				}
 				else if (it.key() == "whocard") { //其他玩家胡牌
@@ -328,6 +416,7 @@ public:
 				json sout;
 				sout["outcard"] = myoutcard;
 				sock.send(sout);
+				std::cout << "outcard\n";
 				wait(sock);
 			}
 
@@ -352,40 +441,50 @@ public:
 
 	//看缺什麼牌
 	void get_need_card(int *tempcard,int len) {
-		int card[17];
-		cpycard(tempcard, card, len);
-		card_sort(card, len, true); //先排序-小到大
+		int tcard[17];
+		cpycard(tempcard, tcard, len);
+		card_sort(tcard, len, true); //先排序-小到大
+		need_card.clear();
+		need_card_index.clear();
 
 		//這邊不討論孤張，因為在上一層的function已經判斷過了
 		for (int i = 0; i < len - 1; i++) {
 			int temp = 0;
-			if (!card_level(card[i], card[i + 1])) { //如果不在同個量級的話 than
+			if (!card_level(tcard[i], tcard[i + 1])) { //如果不在同個量級的話 than
 				continue;
 			}
-			if (card[i + 1] - card[i] >= 3) {
+			if (tcard[i + 1] - tcard[i] >= 3) { //如果無法成順組 than
 				continue;
 			}
 
-			if (card[i] == card[i + 1]) { //如果是2張對組的話 than
-				need_card.push_back(card[i]);
+			if (tcard[i] == tcard[i + 1]) { //如果是2張對組的話 than
+				need_card.push_back(tcard[i]); //push實際數字
+				
 			}
 			else { //不是對組那就是順組了，如果是順組的話 than
-				if (card[i + 1] - card[i] == 1) { //如果是 34 這類的牌型 than
-					if (card[i] % 10 == 1) {
-						need_card.push_back(card[i + 1] + 1);
+				if (tcard[i + 1] - tcard[i] == 1) { //如果是 34 這類的牌型 than
+					if (tcard[i] % 10 == 1) {
+						need_card.push_back(tcard[i + 1] + 1);
 					}
-					else if (card[i] % 10 == 8) {
-						need_card.push_back(card[i] - 1);
+					else if (tcard[i] % 10 == 8) {
+						need_card.push_back(tcard[i] - 1);
 					}
 					else {
-						need_card.push_back(card[i] - 1);
-						need_card.push_back(card[i + 1] + 1);
+						need_card.push_back(tcard[i] - 1);
+						need_card.push_back(tcard[i + 1] + 1);
+						//push index
+						need_card_index.push_back(i);
+						need_card_index.push_back(i + 1);
 					}
 				}
 				else { //如果是 35這類的牌型 than
-					need_card.push_back(card[i] + 1);
+					need_card.push_back(tcard[i] + 1);
 				}
 			}
+			//push index
+			need_card_index.push_back(i); 
+			need_card_index.push_back(i + 1);
+
 		}
 		//print
 		/*for (int i = 0; i < static_cast<int>(need_card.size()); i++)

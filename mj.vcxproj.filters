@@ -36,6 +36,12 @@
     <ClCompile Include="socklink.cpp">
       <Filter>資源檔</Filter>
     </ClCompile>
+    <ClCompile Include="mj.cpp">
+      <Filter>資源檔</Filter>
+    </ClCompile>
+    <ClCompile Include="mjcard.cpp">
+      <Filter>資源檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clientsocket.h">
@@ -48,6 +54,12 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="socklink.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="mj.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="mjcard.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
