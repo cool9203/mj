@@ -26,6 +26,16 @@ myserversocket::~myserversocket() {
 }
 
 
+void myserversocket::initial(int socket, int port, int backlog, char *ip) {
+	myserversocket(socket, port, backlog, ip);
+}
+
+
+void myserversocket::initial(int socket, int port, int backlog, std::string ip) {
+	myserversocket(socket, port, backlog, ip);
+}
+
+
 int myserversocket::listen() {
 	socklink *sockaddr = new socklink(ip, port);
 	sockaddr_in addr = sockaddr->get_struct();

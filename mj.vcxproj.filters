@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MJSystem.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="Player.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
@@ -42,6 +36,15 @@
     <ClCompile Include="mjcard.cpp">
       <Filter>資源檔</Filter>
     </ClCompile>
+    <ClCompile Include="MJSystem.cpp">
+      <Filter>資源檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Player.cpp">
+      <Filter>資源檔</Filter>
+    </ClCompile>
+    <ClCompile Include="mjtransmission.cpp">
+      <Filter>資源檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clientsocket.h">
@@ -60,6 +63,15 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="mjcard.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="MJSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="mjtransmission.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>

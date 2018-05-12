@@ -26,6 +26,21 @@ clientsocket::clientsocket(int fd, std::string ip, int port) {
 }
 
 
+void clientsocket::initial(int socket, sockaddr_in addr) {
+	clientsocket(socket, addr);
+}
+
+
+void clientsocket::initial(int fd, char *ip, int port) {
+	clientsocket(fd, ip, port);
+}
+
+
+void clientsocket::initial(int fd, std::string ip, int port) {
+	clientsocket(fd, ip, port);
+}
+
+
 int clientsocket::connect() {
 	socklink *sockaddr = new socklink(ip, port);
 	sockaddr_in addr = sockaddr->get_struct();

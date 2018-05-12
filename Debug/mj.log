@@ -1,7 +1,6 @@
-﻿  mjcard.cpp
+﻿  Player.cpp
   正在產生程式碼...
-d:\程式\vs2017\mj\mj\mjcard.cpp(179): error C4716: 'mjcard::need': 必須傳回值
-d:\程式\vs2017\mj\mj\mjcard.cpp(189): error C4716: 'mjcard::out': 必須傳回值
-  正在編譯...
+  正在略過... (未偵測到相關變更)
   main.cpp
-  正在產生程式碼...
+  mj.vcxproj -> D:\程式\VS2017\mj\Debug\mj.exe
+  mj.vcxproj -> D:\程式\VS2017\mj\Debug\mj.pdb (Partial PDB)

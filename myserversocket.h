@@ -7,13 +7,14 @@ protected:
 	int backlog;
 
 public:
-	myserversocket(int, int, int, char*);
-	myserversocket(int, int, int, std::string);
+	myserversocket(){}
+	myserversocket(int socket, int port, int backlog, char *ip);
+	myserversocket(int socket, int port, int backlog, std::string ip);
 	~myserversocket();
 
+	void initial(int socket, int port, int backlog, char *ip);
+	void initial(int socket, int port, int backlog, std::string ip);
 	int listen();
 
 	clientsocket* accept();
-
-
 };

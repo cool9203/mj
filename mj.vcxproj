@@ -116,6 +116,7 @@
     <ClCompile Include="mj.cpp" />
     <ClCompile Include="mjcard.cpp" />
     <ClCompile Include="MJSystem.cpp" />
+    <ClCompile Include="mjtransmission.cpp" />
     <ClCompile Include="myserversocket.cpp" />
     <ClCompile Include="mysocket.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -125,8 +126,11 @@
     <ClInclude Include="clientsocket.h" />
     <ClInclude Include="mj.h" />
     <ClInclude Include="mjcard.h" />
+    <ClInclude Include="MJSystem.h" />
+    <ClInclude Include="mjtransmission.h" />
     <ClInclude Include="myserversocket.h" />
     <ClInclude Include="mysocket.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="socklink.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

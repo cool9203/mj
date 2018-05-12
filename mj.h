@@ -16,6 +16,6 @@ protected:
 public:
 	int cmp(int*, int, int, int);
 	void card_cpy(int*,int*,int);
-	void card_sort(int*, int, bool);
+	void card_sort(int*, int, bool Small_to_big);
 	int card_check(int*, int);
 };
