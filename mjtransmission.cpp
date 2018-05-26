@@ -19,12 +19,12 @@ std::string mjtransmission::getstri(const char *name, int intdata) {
 }
 
 //int to json
-json mjtransmission::iarrtojson(int *data, int datalen, const char *main_json_name, const char *second_json_name) {
-	return iarrtojson(data, datalen, main_json_name, second_json_name, false, -1);
+json mjtransmission::iarrtojson(std::vector<int> &data, const char *main_json_name, const char *second_json_name) {
+	return iarrtojson(data, main_json_name, second_json_name, false, -1);
 }
 
 
-json mjtransmission::iarrtojson(int *data, int datalen, const char *main_json_name, const char *second_json_name, bool sendplayernumber, int playernumber) {
+json mjtransmission::iarrtojson(std::vector<int> &data, const char *main_json_name, const char *second_json_name, bool sendplayernumber, int playernumber) {
 	json j, secj;
 
 	if (sendplayernumber && playernumber) {
@@ -34,8 +34,8 @@ json mjtransmission::iarrtojson(int *data, int datalen, const char *main_json_na
 		throw "player_number_error";
 	}
 
-	for (int i = 0; i < datalen; i++) {
-		secj[getstri(second_json_name, i + 1)] = data[i];
+	for (int i = 0; i < static_cast<int>(data.size()); i++) {
+		secj[getstri(second_json_name, i + 1)] = data.at(i);
 	}
 	j[main_json_name] = secj;
 
@@ -44,22 +44,30 @@ json mjtransmission::iarrtojson(int *data, int datalen, const char *main_json_na
 
 
 //return playernumber
-int mjtransmission::getjsonvalue(json &tj, int *buf, const int getlen, bool getplayernumber, const char *tjname) {
-	return getjsonvalue(tj, buf, getlen, getplayernumber, tjname, "card");
+int mjtransmission::getjsonvalue(json &tj, std::vector<int> &buf ,int getlen, const char *tjname) {
+	return getjsonvalue(tj, buf, getlen, tjname, "card");
 }
 
 
-int mjtransmission::getjsonvalue(json &tj, int *buf, const int getlen, bool getplayernumber, const char *tjname, const char *getname) {
+int mjtransmission::getjsonvalue(json &tj, std::vector<int> &buf, int getlen, const char *tjname, const char *getname) {
+	std::cout << tjname << "\n";
 	json j = tj[tjname];
 	int playernumber = -1;
 
-	if (getplayernumber && j.find("playernumber") != j.end()) { //要拿使用者編號 與 真的有傳使用者編號 than
+	if (j.find("playernumber") != j.end()) { //要拿使用者編號 與 真的有傳使用者編號 than
 		playernumber = j["playernumber"];
 	}
 
 	for (int i = 0; i < getlen; i++) {
-		buf[i] = j[getstri(getname, i + 1)];
+		buf.push_back(j[getstri(getname, i + 1)]);
 	}
 
 	return playernumber;
+}
+
+
+void mjtransmission::vectortoiarr(std::vector<int> v, int *arr,const int arrlen) {
+	for (int i = 0; i < arrlen && i < static_cast<int>(v.size()); i++) {
+		arr[i] = v.at(i);
+	}
 }

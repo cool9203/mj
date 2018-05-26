@@ -61,7 +61,7 @@ public:
 	void print_c();
 	void print_o_c();
 
-	int* get_card();
+	std::vector<int> get_card();
 	int get_cptr();
 	int get_ocptr();
 
@@ -74,6 +74,7 @@ public:
 
 	void set_mycardtimes(int*, int);
 	void set_mycardtimes(int);
+	void set_mycardtimes(std::vector<int>);
 
 	void set_need_card();
 

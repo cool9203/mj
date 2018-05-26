@@ -174,6 +174,19 @@ int mj::card_check_check(int *card, int len, bool smallorder, bool preorder) {
 }
 
 
+int mj::card_check(std::vector<int> data) {
+	int card[17];
+	for (int i = 0; i < 17; i++)
+		card[i] = 0;
+
+	for (int i = 0; i < static_cast<int>(data.size()); i++) {
+		card[i] = data.at(i);
+	}
+
+	return card_check(card, data.size());
+}
+
+
 //第0層
 //因為檢查胡牌要判斷4種情況，所以在這統一處理
 //胡牌return 1   沒胡牌return 0

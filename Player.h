@@ -15,7 +15,7 @@ protected:
 
 	void sendtoserver();
 
-	void sendpolling();
+	void sendpolling(mjcard &card, int outcard);
 public:
 	Player();
 	~Player();

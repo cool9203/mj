@@ -1,5 +1,4 @@
 #include <iostream>
-#include <string>
 #include "mjcard.h"
 
 
@@ -200,8 +199,14 @@ void mjcard::print_o_c() {
 }
 
 
-int* mjcard::get_card() {
-	return card;
+std::vector<int> mjcard::get_card() {
+	std::vector<int> v;
+	int tempcard[17];
+	int len = card_merge(tempcard);
+	for (int i = 0; i < len; i++) {
+		v.push_back(tempcard[i]);
+	}
+	return v;
 }
 
 
@@ -244,7 +249,7 @@ std::vector<int> mjcard::need(int assign) {
 		}
 	}
 	need_status = "NULL";
-	throw std::invalid_argument("no match");
+	return vc;
 }
 
 
@@ -653,7 +658,7 @@ int mjcard::search_vector_index(std::vector<int> &buf, int start, int assign) {
 
 
 void mjcard::set_mycardtimes(int *tempcard, int len) {
-	for (int i = 0; i < 17; i++) {
+	for (int i = 0; i < len; i++) {
 		if (tempcard[i] == -1)
 			continue;
 		card_times[tempcard[i]]--;
@@ -665,6 +670,15 @@ void mjcard::set_mycardtimes(int tempcard) {
 	if (!tempcard)
 		return;
 	card_times[tempcard]--;
+}
+
+
+void mjcard::set_mycardtimes(std::vector<int> data) {
+	if (data.size() == 0)
+		return;
+	for (std::vector<int>::iterator it = data.begin(); it != data.end(); ++it) {
+		card_times[*it]--;
+	}
 }
 
 

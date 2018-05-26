@@ -41,7 +41,31 @@ void Player::sendtoserver() {
 }
 
 
-void Player::sendpolling() {
+void Player::sendpolling(mjcard &card, int outcard) {
+	if (card.check_who(outcard) == true) {
+		std::vector<int> tempcard;
+		std::cout << "你胡別人牌了. playnumber:" << player_number << "\n\n";
+		tempcard = card.get_card();
+		json mywho;
+		mywho = iarrtojson(tempcard, "who", "card");
+		sock->send(mywho);
+		return;
+	}
+	card.set_need_card();
+	std::vector<int> tempcard;
+	tempcard = card.need(outcard);
+	if (tempcard.size() != 0) {
+		json mydo;
+		if (card.get_need_status() == "eat") {
+			mydo = iarrtojson(tempcard, "eat", "card");
+		}
+		else if (card.get_need_status() == "pung") {
+			mydo = iarrtojson(tempcard, "pung", "card");
+		}
+		sock->send(mydo);
+		return;
+	}
+
 	//如果都不能做
 	json j;
 	j["no"];
@@ -53,6 +77,7 @@ void Player::sendpolling() {
 void Player::close() {
 
 }
+
 
 
 void Player::start() {
@@ -84,6 +109,7 @@ void Player::start() {
 			std::cout << "client connect failed.\n";
 			break;
 		}
+		return;
 	}
 
 
@@ -104,15 +130,15 @@ void Player::start() {
 				player_number = it.value();
 			}
 			else if (it.key() == "gamestart") { //遊戲開始
-				std::cout << "player[" << player_number << "]:gamestart\n";
+				//std::cout << "player[" << player_number << "]:gamestart\n";
 			}
 			else if (it.key() == "youturn") { //玩家回合 要丟牌
 				turn = true;
 			}
 			else if (it.key() == "outcard") { //其他玩家丟牌
-				int tempoutcard;
-				outplayer = getjsonvalue(r, &tempoutcard, 1, true, "outcard");
-				outcard = tempoutcard;
+				std::vector<int> tempoutcard;
+				outplayer = getjsonvalue(r, tempoutcard, 1, "outcard");
+				outcard = tempoutcard.at(0);
 			}
 			else if (it.key() == "endgame") {
 				std::cout << "流局\n";
@@ -120,39 +146,41 @@ void Player::start() {
 				break;
 			}
 			else if (it.key() == "do") {
-				sendpolling();
+				sendpolling(card, outcard);
 			}
 			else if (it.key() == "eatcard") {
-				int tempcard[3];
-				int doplayer = getjsonvalue(r, tempcard, 3, true, "eatcard");
-				std::cout << "player" << doplayer << " eat.\n";
+				std::vector<int> tempcard;
+				int doplayer = getjsonvalue(r, tempcard, 3, "eatcard");
+				//std::cout << "player" << doplayer << " eat.\n";
 				if (doplayer == player_number) {
-					card.get(tempcard[0], tempcard[1], tempcard[2]);
+					card.get(tempcard.at(0), tempcard.at(1), tempcard.at(2));
+					turn = true;
 				}
 				else {
-					card.set_mycardtimes(tempcard, 3);
+					card.set_mycardtimes(tempcard);
 				}
 			}
 			else if (it.key() == "pungcard") {
-				int tempcard[3];
-				int doplayer = getjsonvalue(r, tempcard, 3, true, "pungcard");
-				std::cout << "player" << doplayer << " pung.\n";
+				std::vector<int> tempcard;
+				int doplayer = getjsonvalue(r, tempcard, 3, "pungcard");
+				//std::cout << "player" << doplayer << " pung.\n";
 				if (doplayer == player_number) {
-					card.get(tempcard[0], tempcard[1], tempcard[2]);
+					card.get(tempcard.at(0), tempcard.at(1), tempcard.at(2));
+					turn = true;
 				}
 				else {
-					card.set_mycardtimes(tempcard, 3);
+					card.set_mycardtimes(tempcard);
 				}
 			}
 			else if (it.key() == "whocard") {
-				int tempcard[17];
-				int whoplayer = getjsonvalue(r, tempcard, 17, true, "whocard");
-				std::cout << "player[" << whoplayer << "] Win:";
-				/*
-				for (int i = 0; i < 17; i++)
-					std::cout << tempcard[i] << " ";
+				std::vector<int> tempcard;
+				int whoplayer = getjsonvalue(r, tempcard, 17, "whocard");
+				std::cout << "player[" << whoplayer << "] Win:\n";
+				
+				for (std::vector<int>::iterator it = tempcard.begin(); it != tempcard.end(); ++it)
+					std::cout << *it << " ";
 				std::cout << "\n";
-				*/
+				
 				who = true;
 				break;
 			}
@@ -160,274 +188,30 @@ void Player::start() {
 
 		if (turn) {
 			if (card.check_who()) {
+				std::vector<int> tempcard;
 				card.print();
 				std::cout << "你胡牌了. playnumber:" << player_number << "\n\n";
+				tempcard = card.get_card();
 				json mywho;
-				mywho = iarrtojson(card.get_card(), 17, "who", "card");
+				mywho = iarrtojson(tempcard, "who", "card");
 				sock->send(mywho);
 				continue;
 			}
 			//丟牌
 			json out;
 			out["outcard"] = card.out();
+			//std::cout << "playerout:" << out << "\n\n";
 			sock->send(out);
 			wait();
 			//整理牌
 			card.arrange();
 		}
 		if (who) {
-			std::cout << "client get end.\n";
+			//std::cout << "client get end.\n";
 			break;
 		}
 	}
 }
-
-
-int mydo(int *card, int cardlen, int *data, int datalen) {
-	int cptr = cardlen;
-	for (int i = 0; i < datalen - 1; i++) {
-		int size = cptr;
-		for (int j = 0; j < size; j++) {
-			if (card[j] == data[i]) {
-				std::swap(card[cptr], card[cptr - 1]);
-				std::swap(card[cptr], card[j]);
-				cptr--;
-				break;
-			}
-		}
-	}
-
-	card[cptr] = data[datalen - 1];
-	cptr--;
-	return cptr;
-}
-
-
-//如果server傳 [do] 我要做什麼事
-/*
-void sendpolling(clientsocket &sock,int outcard,int outplayer) {
-		
-		//處理胡牌
-		int whocard[17];
-		card_cpy(card, whocard, 17);
-		whocard[cptr] = outcard;
-		if (card_check(whocard, 17)) {
-			std::cout << "你胡到別人牌了!\n";
-			json j, secj;
-			for (int i = 0; i < 17; i++) {
-				if (i == cptr)
-					continue;
-
-				secj[getstri("card", i + 1 - (i%cptr))] = whocard[i];
-			}
-			j["who"] = secj;
-			sock.send(j);
-			wait(sock);
-			return;
-		}
-
-		//處理吃碰
-		for (int i = 0; i < static_cast<int>(need_card.size());i++) {
-			json j;
-			try {
-				if (outcard == need_card.at(i)) { //別人丟的牌是我要吃碰的牌
-					if (card[need_card_index.at(i * 2)] == card[need_card_index.at(i * 2 + 1)]) { //如果是碰的話
-						std::cout << "player[" << player_number << "] want to pung.\n\n";
-						int temparr[2] = { card[need_card_index.at(i * 2)] ,card[need_card_index.at(i * 2 + 1)] };
-						j = iarrtojson(temparr, 2, "pung", "card");
-						sock.send(j);
-						wait(sock);
-					}
-					else { //不是碰那就是吃
-						std::cout << "player" << player_number << ":outplayer = " << outplayer << std::endl;
-						if (outplayer != (player_number - 1) % 4)
-							break;
-						std::cout << "player[" << player_number << "] want to eat.\n\n";
-						int temparr[2] = { card[need_card_index.at(i * 2)] ,card[need_card_index.at(i * 2 + 1)] };
-						j = iarrtojson(temparr, 2, "eat", "card");
-						sock.send(j);
-						wait(sock);
-					}
-					return;
-				}
-			}
-			catch(...){
-				std::cout << "i=" << i << std::endl;
-				std::cout << "need=" << need_card.size() << std::endl;
-				std::cout << "need_index=" << need_card_index.size() << std::endl;
-			}
-			
-		}
-		
-		//如果都不能做
-		json j;
-		j["no"];
-		sock.send(j);
-		wait(sock);
-	}
-*/
-
-//Player Start
-/*void start() {
-		//create socket
-		int socketfd = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (socketfd == INVALID_SOCKET)
-		{
-			return;
-		}
-
-		clientsocket sock(socketfd, "127.0.0.1", 9990);
-
-		int c = sock.connect();
-		if (c != 0) {
-			switch (c) {
-			case 899:
-				std::cout << "create SOCKET failed.\n";
-				return;
-			default:
-				std::cout << "\tclient connect failed.\n";
-				return;
-			}
-		}
-		int cptr = 0;
-		int outcard, outplayer;
-		bool who = false;
-		bool setcardtimes = false;
-
-		//根據讀到的json來作出指定的事情
-		while (true) {
-			bool turn = false;
-			json j, d, s;
-			d["done"];
-
-			//先讀取json,如果沒有讀到東西 than continue
-			sock.read(j);
-			if (j.is_null()) {
-				continue;
-			}
-			
-			sock.send(d);//有東西了,先send d[done],向系統表示收到了
-
-			for (json::iterator it = j.begin(); it != j.end(); ++it) {
-				//std::cout << it.key() << " : " << it.value() << "\n";
-				if (it.key() == "sendcard") {
-					card[cptr] = it.value();
-					set_mycardtimes(card[cptr]);
-					//std::cout << "get card:" << card[cptr] << std::endl;
-					cptr++;
-					//std::cout << "player[" << player_number << "]:" << "cptr=" << cptr << std::endl;
-
-				}
-				else if (it.key() == "do") { //要作出回應,看要吃碰槓胡,如果都沒事就sned json[no]
-					get_need_card(card, cptr);
-					sendpolling(sock, outcard, outplayer);
-
-				}
-				else if (it.key() == "youplayernumber") { //紀錄自己的玩家編號
-					player_number = it.value();
-
-				}
-				else if (it.key() == "gamestart") { //遊戲開始
-					std::cout << "player[" << player_number << "]:gamestart\n";
-
-				}
-				else if (it.key() == "youturn") { //玩家回合 要丟牌
-					turn = true;
-
-				}
-				else if (it.key() == "outcard") { //其他玩家丟牌
-					int tempoutcard[2];
-					outplayer = getjsonvalue(j, tempoutcard, 1, true, "outcard");
-					outcard = tempoutcard[0];
-					set_mycardtimes(outcard);
-
-				}
-				else if (it.key() == "eatcard") { //其他玩家吃牌
-					int eatcard[3];
-					int eatplayernumber = getjsonvalue(j, eatcard, 3, true, "eatcard");
-					std::cout << "player" << eatplayernumber << " eat.\n";
-					if (eatplayernumber == player_number) {
-						turn = true;
-						cptr = mydo(card, cptr, eatcard, 3);
-					}
-
-				}
-				else if (it.key() == "pungcard") { //其他玩家碰牌
-					int pungcard[3];
-					int pungplayernumber = getjsonvalue(j, pungcard, 3, true, "pungcard");
-					std::cout << "player" << pungplayernumber << " pung.\n";
-					if (pungplayernumber == player_number) {
-						turn = true;
-						cptr = mydo(card, cptr, pungcard, 3);
-					}
-
-				}
-				else if (it.key() == "whocard") { //其他玩家胡牌
-				   //end
-					//std::cout << "client get who.\n";
-					int buf[17], number = -1;
-					number = getjsonvalue(j, buf, 17, true, "whocard");
-					std::cout << "player[" << number << "] Win:";
-					who = true;
-					//printcard(buf, 17);
-					print(buf, 17);
-					std::cout << "\n\n";
-					break;
-
-				}
-				else if (it.key() == "endgame") {
-					std::cout << "流局\n";
-					break;
-				}
-					
-			}
-
-			if (turn == true) { //拉出來做,才不會json[youturn]不是在最後導致牌沒拿完就準備丟牌
-				//print(card, 17);
-				//確認是否胡牌
-				if (card_check(card, cptr)) { //胡牌了
-					s = iarrtojson(card, 17, "who", "card");
-					//std::cout << "client who s:" << s << "\n\n";
-					sock.send(s);
-					wait(sock);
-					std::cout << "你胡牌了. playnumber:" << player_number << "\n\n";
-					continue;
-				}
-
-				//整牌
-				cptr = card_organize(card, cptr);
-				card_sort(card, cptr, true);
-
-				//丟牌
-				
-				int index = card_price(card, cptr);
-				int myoutcard = card[index];
-				card[index] = -1;
-				swap(card[cptr - 1], card[index]); //swap，讓進牌可以在最後面進
-				cptr--;
-				json sout;
-				sout["outcard"] = myoutcard;
-				sock.send(sout);
-				std::cout << "outcard\n";
-				wait(sock);
-			}
-
-			if (who) {
-				break;
-			}
-
-		}
-
-		sock.close();
-		return;
-	}*/
-
-
-
-
-
-
-
 
 
 //test

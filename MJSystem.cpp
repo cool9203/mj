@@ -151,8 +151,8 @@ void MJSystem::sendtoclient(const char *name, int data) {
 }
 
 
-void MJSystem::sendtoclient(int *data, int datalen, const char *main_json_name, const char *second_json_name,int playernumber) {
-	json j = iarrtojson(data, datalen, main_json_name, second_json_name, true, playernumber);
+void MJSystem::sendtoclient(std::vector<int> data, const char *main_json_name, const char *second_json_name,int playernumber) {
+	json j = iarrtojson(data, main_json_name, second_json_name, true, playernumber);
 	sendtoclient(j);
 }
 
@@ -184,6 +184,7 @@ void MJSystem::sendoutcard(int outcard, int main_player) {
 
 	}
 }
+
 
 
 void MJSystem::start() {
@@ -220,7 +221,7 @@ void MJSystem::start() {
 	}
 
 	int main_player = 0;
-	int whocard[17];
+	std::vector<int> whocard;
 	bool who = false;
 	//get 4 client and send playernumber
 	getclient();
@@ -263,8 +264,8 @@ void MJSystem::start() {
 
 				}
 				else if (it.key() == "who") { //如果他自摸
-					getjsonvalue(j, whocard, 17, false, "who");
-					if (card_check(whocard, 17) != 0) {
+					getjsonvalue(r, whocard, 17, false, "who");
+					if (card_check(whocard) != 0) {
 						//std::cout << "server get who.\n";
 						who = true;
 					}
@@ -297,74 +298,85 @@ void MJSystem::start() {
 					break;
 				}
 				else if (tr.find("pung") != tr.end() && r.find("who") == r.end()) {
+					player_do = number;
 					r.clear();
 					r = tr;
 				}
 				else if (tr.find("eat") != tr.end() && r.is_null()) {
+					player_do = number;
+					r.clear();
 					r = tr;
 				}
 			}
+			//std::cout << r << "\n\n";
 			//找完吃碰槓胡的順序後，決定下個main_player和檢查client傳過來的資訊，來確定是否是正確的動作
 			//有人胡牌
 			if (r.find("who") != r.end()) {
-				getjsonvalue(r, whocard, 16, false, "who");
-				whocard[16] = outcard;
-				if (card_check(whocard, 17)) {
+				getjsonvalue(r, whocard, 16, "who");
+				whocard.push_back(outcard);
+				if (card_check(whocard)) {
 					main_player = player_do;
-					who = true; 
+					who = true;
 					std::cout << "player[" << main_player << "]:who\n\n";
 					break;
 				}
+				else
+					player_do = -1;
 			}//碰牌
 			else if (r.find("pung")!=r.end()) {
-				int tempcard[3];
-				getjsonvalue(r, tempcard, 2, false, "pung");
-				std::cout << "pungcard:" << tempcard[0] << " " << tempcard[1] << " " << outcard << std::endl;
-				if (check_pung(tempcard[0], tempcard[1], outcard)) {
+				std::vector<int> tempcard;
+				getjsonvalue(r, tempcard, 2, "pung");
+				std::cout << "pungcard:" << tempcard.at(0) << " " << tempcard.at(1) << " " << outcard << std::endl;
+				if (check_pung(tempcard.at(0), tempcard.at(1), outcard)) {
 					main_player = player_do;
 					std::cout << "player[" << main_player << "]:pung\n\n";
-					tempcard[2] = outcard;
-					sendtoclient(tempcard, 3, "pungcard", "card", main_player);
+					tempcard.push_back(outcard);
+					sendtoclient(tempcard, "pungcard", "card", main_player);
 				}
+				else
+					player_do = -1;
 			}//吃牌
 			else if (r.find("eat") != r.end()) {
-				int tempcard[3];
-				getjsonvalue(r, tempcard, 2, false, "eat");
-				std::cout << "eatcard:" << tempcard[0] << " " << tempcard[1] << " " << outcard << std::endl;
-				if (check_eat(tempcard[0], tempcard[1], outcard)) {
+				std::vector<int> tempcard;
+				getjsonvalue(r, tempcard, 2, "eat");
+				std::cout << "eatcard:" << tempcard.at(0) << " " << tempcard.at(1) << " " << outcard << std::endl;
+				if (check_eat(tempcard.at(0), tempcard.at(1), outcard)) {
 					main_player = player_do;
 					std::cout << "player[" << main_player << "]:eat\n\n";
-					tempcard[2] = outcard;
-					sendtoclient(tempcard, 3, "eatcard", "card", main_player);
+					tempcard.push_back(outcard);
+					sendtoclient(tempcard, "eatcard", "card", main_player);
 				}
+				else
+					player_do = -1;
 			}
 
 			if (player_do >= 0) {
 				//read "outcard"
 				json temprj;
-				temprj = read(main_player);
-				outcard = temprj["outcard"];
+				while (true) {
+					temprj = read(main_player);
+					if (temprj.find("outcard") != temprj.end())
+						break;
+					std::cout << temprj << "\n\n";
+				}
+				
+				outcard = static_cast<int>(temprj["outcard"]);
 			}
 			else { //都沒事,下個使用者
 				main_player = (main_player + 1) % 4;
 				break;
 			}
 		}//連續吃碰槓while's
-
-		try {
-			//處理胡牌
-			if (who == true) {
-				sendtoclient(whocard, 17, "whocard", "card", main_player);
-				break;
-			}
-		}
-		catch (...) {
-			std::cout << "get exception.\n";
-			for (int i = 0; i < 17; i++)
-				std::cout << whocard[i] << " ";
-		}
 	}//this is playing while's
-
-	
-
+	try {
+		//處理胡牌
+		if (who == true) {
+			sendtoclient(whocard, "whocard", "card", main_player);
+		}
+	}
+	catch (...) {
+		std::cout << "get exception.\n";
+		for (int i = 0; i < 17; i++)
+			std::cout << whocard[i] << " ";
+	}
 }

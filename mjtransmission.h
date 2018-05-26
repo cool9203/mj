@@ -15,9 +15,11 @@ public:
 	json done();
 	std::string getstri(const char *name, int intdata);
 
-	json iarrtojson(int *data, int datalen, const char *main_json_name, const char *second_json_name);
-	json iarrtojson(int *data, int datalen, const char *main_json_name, const char *second_json_name, bool sendplayernumber, int playernumber);
+	json iarrtojson(std::vector<int> &data, const char *main_json_name, const char *second_json_name);
+	json iarrtojson(std::vector<int> &data, const char *main_json_name, const char *second_json_name, bool sendplayernumber, int playernumber);
 
-	int getjsonvalue(json &tj, int *buf, const int getlen, bool getplayernumber, const char *tjname);
-	int getjsonvalue(json &tj, int *buf, const int getlen, bool getplayernumber, const char *tjname, const char *getname);
+	int getjsonvalue(json &tj, std::vector<int> &buf, const int getlen, const char *tjname);
+	int getjsonvalue(json &tj, std::vector<int> &buf, const int getlen, const char *tjname, const char *getname);
+
+	void vectortoiarr(std::vector<int> v, int *arr,const int arrlen);
 };

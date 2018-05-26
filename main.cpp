@@ -19,18 +19,16 @@ void server() {
 void client() {
 	Player p;
 	p.start();
-	std::cout << "p.closr()\n";
+	//std::cout << "p.closr()\n";
 }
 
+
 int main(int argc, char *argv[]) {
-	
+
+
 	
 	while (true) {
 		try {
-			int c[17] = { 1,1,1,2,2,2,3,3,3,4,4,5,5,6,6,7,7 };
-			mjcard card(c, 17);
-
-			/*
 			std::thread s(server);
 			std::thread c1(client);
 			std::thread c2(client);
@@ -42,14 +40,14 @@ int main(int argc, char *argv[]) {
 			c3.join();
 			c4.join();
 			s.join();
-			*/
+			
 		}
 		catch (...) {
 			abort();
 		}
 
 		int p=1;
-		//std::cin >> p;
+		std::cin >> p;
 
 		if (p == 1)
 			break;
