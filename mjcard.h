@@ -8,7 +8,7 @@ protected:
 	int card[17];
 	int _ocard[17];
 	int playernumber;
-	std::vector<int> need_card, need_card_index;
+	std::vector<int> need_card, need_card_assist;
 	std::string need_status;
 
 
@@ -19,7 +19,7 @@ protected:
 	int card_merge(int*);
 	void print_c_card(int*, int);
 
-#pragma region AI
+#pragma region AI & check who
 	int card_times[44];
 
 	int card_price(int*, int);
@@ -30,6 +30,7 @@ protected:
 	int get_card_expect(int*, int);
 	int card_expect(int*, int, int*);
 	bool card_expect(int*, int, int);
+	bool card_expect_eat(int*, int, int);
 
 	bool card_level(int, int);
 
@@ -49,12 +50,18 @@ public:
 	void push(int);
 	int pop();
 	int pop(int);
+	int del(int);
 	void swap(int, int);
-	int find(int);
+	bool find(int);
+	int find_index(int);
 	void arrange();
 
 	bool check_who();
 	bool check_who(int);
+	
+	bool check_eat(int);
+
+	bool check_pung(int);
 
 	void print();
 	void print_o();

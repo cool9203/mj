@@ -1,6 +1,7 @@
 ﻿//牌局系統-MJSystem
 //沒有起始的骰子概念、也沒有時間的概念
 #include "MJSystem.h"
+#include "mjcard.h"
 #include <random>
 
 MJSystem::MJSystem() {
@@ -136,7 +137,7 @@ void MJSystem::sendtoclient(json j) {
 }
 
 
-void MJSystem::sendtoclient(const char *name) {
+void MJSystem::sendtoclient_c(const char *name) {
 	json j;
 	j[name];
 	sendtoclient(j);
@@ -186,7 +187,182 @@ void MJSystem::sendoutcard(int outcard, int main_player) {
 }
 
 
+void MJSystem::start() {
+	//link dll
+	WSADATA wsaData;
+	int wsad = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (wsad != 0) {
+		std::cout << "link dll failed." << std::endl;
+		system("PAUSE");
+		return;
+	}
 
+	int socketfd = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (socketfd == INVALID_SOCKET)
+	{
+		return;
+	}
+
+	//create ServerSocket
+	server = new myserversocket(socketfd, 9990, 10, "127.0.0.1");
+	int l = server->listen();
+	if (l != 1) {
+		switch (l) {
+		case -1:
+			std::cout << "create SOCKET failed." << std::endl;
+			return;
+		case -2:
+			std::cout << "bind failed." << std::endl;
+			return;
+		case -3:
+			std::cout << "listen failed." << std::endl;
+			return;
+		}
+	}
+
+	int main_player = 0;
+	std::vector<mjcard*> player_card;
+	bool who = false;
+	for (int i = 0; i < 4; i++) 
+		player_card.push_back(new mjcard);
+
+	//get 4 client and send playernumber
+	getclient();
+
+	//send json["gamestart"]
+	sendtoclient_c("gamestart");
+	//card random
+	card_rand();
+	//send 4*4card to player
+	for (int i = 0; i < 4; i++) {
+		for (int player = 0; player < static_cast<int>(client.size()); player++) {
+			for (int count = 0; count < 4; count++) {
+				int getcard = get_card();
+				player_card.at(player)->push(getcard);
+				sendtoclient_one("sendcard", getcard, player);
+			}
+		}
+	}
+	//game start
+	while (true) {
+		if (card.size() == 16) {
+			std::cout << "endgame.\n";
+			sendtoclient_c("endgame");
+			break;
+		}
+
+		for (int i = 0; i < 1; i++) {
+			int sendcard = get_card();
+			json j;
+			j["sendcard"] = sendcard;
+			sendtoclient_one(j, main_player);
+			player_card.at(main_player)->push(sendcard);
+			if (player_card.at(main_player)->check_who()) {
+				//他自摸了
+				who = true;
+				break;
+			}
+		}
+
+		if (who)
+			break;
+
+		bool domake = true;
+		while (true) {
+			if (!domake)
+				break;
+
+			std::vector<int> order;
+			int outcard = -1;
+			json outj,r;
+			outj["sendoutcard"];
+			sendtoclient_one(outj, main_player);
+			r = read(main_player);
+			outcard = r["sendoutcard"];
+			player_card.at(main_player)->del(outcard);
+			//找誰可以胡牌
+			for (int i = 1; i <= 3; i++) { 
+				int tempp = (main_player + i) % 4;
+				if (player_card.at(tempp)->check_who(outcard))
+					order.push_back(tempp);
+			}
+			order.push_back(-1);
+			//找誰可以碰牌
+			for (int i = 1; i <= 3; i++) {
+				int tempp = (main_player + i) % 4;
+				if (player_card.at(tempp)->check_pung(outcard))
+					order.push_back(tempp);
+			}
+			order.push_back(-2);
+			//看下家可不可以吃牌
+			if (player_card.at((main_player + 1) % 4)->check_eat(outcard))
+				order.push_back((main_player + 1) % 4);
+
+			std::string str = "who";
+			for (std::vector<int>::iterator it = order.begin(); it != order.end(); ++it) {
+				if (*it == -1) {
+					str.clear();
+					str = "pung";
+					continue;
+				}
+				else if (*it == -2) {
+					str.clear();
+					str = "eat";
+					domake = false;
+					continue;
+				}
+
+				json j,dr;
+				j[str] = outcard;
+				sendtoclient_one(j, *it);
+				dr = read(*it);
+				std::vector<int> tempcard;
+				if (dr.find("do") != dr.end()) {
+					getjsonvalue(dr, tempcard, 2, "do");
+					tempcard.push_back(outcard);
+					domake = true;
+					main_player = *it;
+					if (str == "who") {
+						who = true;
+						player_card.at(*it)->push(outcard);
+						break;
+					}
+					str += "card";
+					player_card.at(*it)->get(tempcard.at(0), tempcard.at(1), tempcard.at(2));
+					sendtoclient(tempcard, str.c_str(), "card", *it);
+					break;
+				}
+				domake = false;
+			}
+		}
+		if (who)
+			break;
+		else
+			main_player = (main_player + 1) % 4;
+
+	}//this is playing while's
+	try {
+		//處理胡牌
+		if (who == true) {
+			sendtoclient(player_card.at(main_player)->get_card(), "whocard", "card", main_player);
+		}
+		player_card.at(main_player)->print();
+		player_card.at(main_player)->print_o();
+		for (int i = 0; i < 4; i++) {
+			//player_card.at(i)->print();
+			//std::cout << std::endl;
+		}
+	}
+	catch (...) {
+		std::cout << "get exception.\n";
+		for (int i = 0; i < 17; i++)
+			//std::cout << whocard[i] << " ";
+			;
+	}
+}
+
+
+/*
 void MJSystem::start() {
 	//link dll
 	WSADATA wsaData;
@@ -227,7 +403,7 @@ void MJSystem::start() {
 	getclient();
 
 	//send json["gamestart"]
-	sendtoclient("gamestart");
+	sendtoclient_c("gamestart");
 	//card random
 	card_rand();
 	//send 4*4card to player
@@ -243,7 +419,7 @@ void MJSystem::start() {
 		int outcard = -1;
 		if (card.size() == 16) {
 			std::cout << "endgame.\n";
-			sendtoclient("endgame");
+			sendtoclient_c("endgame");
 			break;
 		}
 
@@ -357,7 +533,6 @@ void MJSystem::start() {
 					temprj = read(main_player);
 					if (temprj.find("outcard") != temprj.end())
 						break;
-					std::cout << temprj << "\n\n";
 				}
 				
 				outcard = static_cast<int>(temprj["outcard"]);
@@ -380,3 +555,4 @@ void MJSystem::start() {
 			std::cout << whocard[i] << " ";
 	}
 }
+*/

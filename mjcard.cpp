@@ -26,10 +26,13 @@ mjcard::mjcard(int *data, int datalen) : mjcard() { //: mjcard() this is can cal
 
 void mjcard::transfer(int data) {
 	if (!find(data))
-		throw std::invalid_argument("transfer no find match");
+		throw std::runtime_error("transfer no find match");
 
 	cptr--;
-	swap(find(data), cptr);
+	int temp_index = find_index(data);
+	if (temp_index == -1)
+		throw 123;
+	swap(temp_index, cptr);
 	_ocard[_ocptr] = card[cptr];
 	_ocptr++;
 	card[cptr] = -1;
@@ -135,16 +138,37 @@ int mjcard::pop(int index) {
 }
 
 
+int mjcard::del(int assign) {
+	for (int i = 0; i < cptr; i++) {
+		if (card[i] == assign) {
+			return pop(i);
+		}
+	}
+	return -1;
+}
+
+
 void mjcard::swap(int index_1,int index_2) {
 	std::swap(card[index_1], card[index_2]);
 }
 
 
-int mjcard::find(int assign) {
+bool mjcard::find(int assign) {
 	for (int i = 0; i < cptr; i++) {
+		if (assign == card[i]) {
+			return true;
+		}
+	}
+	return false;
+}
+
+int mjcard::find_index(int assign) {
+	for (int i = 0; i < 17; i++) {
 		if (assign == card[i]) {
 			return i;
 		}
+		else if (card[i] <= 0 || card[i] >= 100)
+			continue;
 	}
 	return -1;
 }
@@ -165,11 +189,25 @@ bool mjcard::check_who() {
 
 bool mjcard::check_who(int data) {
 	int tempcard[17];
-	if ((cptr + _ocptr) == 17)
+	if ((cptr + _ocptr) >= 17)
 		return false;
 	card_cpy(card, tempcard, cptr);
 	tempcard[cptr] = data;
-	return card_check(tempcard, cptr + 1);
+	return card_check(tempcard, cptr);
+}
+
+
+bool mjcard::check_eat(int data) {
+	if (card_expect_eat(card, cptr, data))
+		return true;
+	return false;
+}
+
+
+bool mjcard::check_pung(int data) {
+	if (getcardtimes(card, cptr, data) >= 2)
+		return true;
+	return false;
 }
 
 
@@ -237,8 +275,8 @@ std::vector<int> mjcard::need(int assign) {
 	need_status.clear();
 	for (int i = 0; i < static_cast<int>(need_card.size()); i++) {
 		if (assign == need_card.at(i)) {
-			vc.push_back(card[need_card_index.at(i * 2)]);
-			vc.push_back(card[need_card_index.at(i * 2 + 1)]);
+			vc.push_back(need_card_assist.at(i * 2));
+			vc.push_back(need_card_assist.at(i * 2 + 1));
 			if (vc.at(0) == vc.at(1)) {
 				need_status = "pung";
 			}
@@ -259,11 +297,43 @@ std::string mjcard::get_need_status() {
 
 
 //吃碰槓時才利用這func 來讓成對的卡轉移，單純拿到牌的話就用push()就好
-void mjcard::get(int data1,int data2,int getdata) {
-	transfer(data1);
-	transfer(data2);
-	_ocard[_ocptr] = getdata;
-	_ocptr++;
+void mjcard::get(int data1,int data2,int data3) {
+	int nofind = -1;
+	std::vector<int> arr;
+	arr.push_back(data1);
+	arr.push_back(data2);
+	arr.push_back(data3);
+
+	for (int i = 0; i < 3; i++) {
+		if (!find(arr.at(i))) {
+			if (nofind != -1) {
+				print();
+				print_o();
+				std::cout << data1 << " " << data2 << " " << data3 << "\n";
+				std::cout << std::endl;
+				throw false;
+			}
+			else
+				nofind = i;
+		}
+	}
+
+	for (int i = 0; i < 3; i++) {
+		if (i == nofind) {
+			_ocard[_ocptr] = arr.at(i);
+			_ocptr++;
+		}
+		else {
+			if (nofind == -1 && i == 2) {
+				_ocard[_ocptr] = arr.at(i);
+				_ocptr++;
+			}
+			else
+			{
+				transfer(arr.at(i));
+			}
+		}
+	}
 }
 
 
@@ -584,13 +654,65 @@ bool mjcard::card_expect(int *tempcard, int len, int cptr) {
 		buf.push_back(tempcard[cptr] + 2);
 	}
 	//看有沒有可以等的順組
+	int count = 0;
 	for (int i = 0; i < static_cast<int>(buf.size()); i++) {
 		if (cmp(tempcard, len, 0, buf.at(i)) != -1)
+			count++;
+		else
+			count--;
+		if (count == 2)
 			return true;
 	}
 	//看有沒有可以等的對組
 	if (getcardtimes(tempcard, len, tempcard[cptr]) >= 2)
 		return true;
+
+	return false;
+}
+
+
+//這張牌，有沒有組成可以等待的順 ex:input 5  search for 3 4 6 7
+//data為輸入的數字
+bool mjcard::card_expect_eat(int *tempcard, int len, int data) {
+	std::vector<int> buf;
+	if (data % 10 == 1) {
+		buf.push_back(data + 1);
+		buf.push_back(data + 2);
+
+	}
+	else if (data % 10 == 9) {
+		buf.push_back(data - 2);
+		buf.push_back(data - 1);
+
+	}
+	else if (data % 10 == 2) {
+		buf.push_back(data - 1);
+		buf.push_back(data + 1);
+		buf.push_back(data + 2);
+
+	}
+	else if (data % 10 == 8) {
+		buf.push_back(data - 2);
+		buf.push_back(data - 1);
+		buf.push_back(data + 1);
+
+	}
+	else {
+		buf.push_back(data - 2);
+		buf.push_back(data - 1);
+		buf.push_back(data + 1);
+		buf.push_back(data + 2);
+	}
+	//看有沒有可以等的順組
+	int count = 0;
+	for (int i = 0; i < static_cast<int>(buf.size()); i++) {
+		if (cmp(tempcard, len, 0, buf.at(i)) != -1)
+			count++;
+		else
+			count--;
+		if (count == 2)
+			return true;
+	}
 
 	return false;
 }
@@ -608,6 +730,8 @@ bool mjcard::card_level(int card1, int card2) {
 	if (card1 < 30 && card1>20 && card2 < 30 && card2>20) { //筒子
 		return true;
 	}
+	if (card1 > 30 && card1 < 44 && card2>30 && card2 < 44) //字牌
+		return true;
 
 	return false;
 }
@@ -701,7 +825,7 @@ void mjcard::set_need_card() {
 	card_cpy(card, tcard, len);
 	card_sort(tcard, len, true); //先排序-小到大
 	need_card.clear();
-	need_card_index.clear();
+	need_card_assist.clear();
 
 	//這邊不討論孤張，因為在上一層的function已經判斷過了
 	for (int i = 0; i < len - 1; i++) {
@@ -715,7 +839,9 @@ void mjcard::set_need_card() {
 
 		if (tcard[i] == tcard[i + 1]) { //如果是2張對組的話 than
 			need_card.push_back(tcard[i]); //push實際數字
-
+			//push assist
+			need_card_assist.push_back(tcard[i]);
+			need_card_assist.push_back(tcard[i]);
 		}
 		else { //不是對組那就是順組了，如果是順組的話 than
 			if (tcard[i + 1] - tcard[i] == 1) { //如果是 34 這類的牌型 than
@@ -728,19 +854,19 @@ void mjcard::set_need_card() {
 				else {
 					need_card.push_back(tcard[i] - 1);
 					need_card.push_back(tcard[i + 1] + 1);
-					//push index
-					need_card_index.push_back(i);
-					need_card_index.push_back(i + 1);
+					//push assist
+					need_card_assist.push_back(tcard[i]);
+					need_card_assist.push_back(tcard[i + 1]);
 				}
 			}
 			else { //如果是 35這類的牌型 than
 				need_card.push_back(tcard[i] + 1);
 			}
+			//push assist
+			need_card_assist.push_back(tcard[i]);
+			need_card_assist.push_back(tcard[i + 1]);
 		}
-		//push index
-		need_card_index.push_back(i);
-		need_card_index.push_back(i + 1);
-
+		
 	}
 	//print
 	/*
@@ -749,8 +875,8 @@ void mjcard::set_need_card() {
 
 	std::cout << "\n\n";
 
-	for (int i = 0; i < static_cast<int>(need_card_index.size()); i++)
-		std::cout << card[need_card_index.at(i)] << " ";
+	for (int i = 0; i < static_cast<int>(need_card_assist.size()); i++)
+		std::cout << need_card_assist.at(i) << " ";
 	*/
 }
 #pragma endregion</spin>

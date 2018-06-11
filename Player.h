@@ -14,8 +14,6 @@ protected:
 	json read();
 
 	void sendtoserver();
-
-	void sendpolling(mjcard &card, int outcard);
 public:
 	Player();
 	~Player();

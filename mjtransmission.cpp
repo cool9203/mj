@@ -30,7 +30,7 @@ json mjtransmission::iarrtojson(std::vector<int> &data, const char *main_json_na
 	if (sendplayernumber && playernumber) {
 		secj["playernumber"] = playernumber;
 	}
-	else if (sendplayernumber && playernumber <= 0) {
+	else if (sendplayernumber && playernumber < 0) {
 		throw "player_number_error";
 	}
 
@@ -50,7 +50,6 @@ int mjtransmission::getjsonvalue(json &tj, std::vector<int> &buf ,int getlen, co
 
 
 int mjtransmission::getjsonvalue(json &tj, std::vector<int> &buf, int getlen, const char *tjname, const char *getname) {
-	std::cout << tjname << "\n";
 	json j = tj[tjname];
 	int playernumber = -1;
 

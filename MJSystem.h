@@ -25,7 +25,7 @@ protected:
 	json read(int assign);
 	
 	void sendtoclient(json j);
-	void sendtoclient(const char *name);
+	void sendtoclient_c(const char *name);
 	void sendtoclient(const char *name, int data);
 	void sendtoclient(std::vector<int> data, const char *main_json_name, const char *second_json_name, int playernumber);
 
