@@ -107,7 +107,6 @@ void Player::start() {
 				wait();
 			}
 			else if (it.key() == "endgame") {
-				std::cout << "流局\n";
 				who = true;
 				break;
 			}

@@ -221,6 +221,7 @@ void MJSystem::start() {
 	}
 
 	int main_player = 0;
+	int whoed = -1;
 	std::vector<mjcard*> player_card;
 	bool who = false;
 	for (int i = 0; i < 4; i++) 
@@ -259,6 +260,7 @@ void MJSystem::start() {
 			player_card.at(main_player)->push(sendcard);
 			if (player_card.at(main_player)->check_who()) {
 				//他自摸了
+				std::cout << "player[" << main_player << "]自摸了.\n";
 				who = true;
 				break;
 			}
@@ -271,6 +273,8 @@ void MJSystem::start() {
 		while (true) {
 			if (!domake)
 				break;
+
+			whoed = main_player;
 
 			std::vector<int> order;
 			int outcard = -1;
@@ -346,8 +350,9 @@ void MJSystem::start() {
 		if (who == true) {
 			sendtoclient(player_card.at(main_player)->get_card(), "whocard", "card", main_player);
 		}
-		player_card.at(main_player)->print();
-		player_card.at(main_player)->print_o();
+		std::cout << "player[" << whoed << "]胡 " << main_player << "的牌\n\n";
+		//player_card.at(main_player)->print();
+		//player_card.at(main_player)->print_o();
 		for (int i = 0; i < 4; i++) {
 			//player_card.at(i)->print();
 			//std::cout << std::endl;

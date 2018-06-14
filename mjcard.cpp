@@ -133,7 +133,6 @@ int mjcard::pop(int index) {
 	swap(index, cptr);
 	int temp = card[cptr];
 	card[cptr] = -1;
-	set_need_card();
 	return temp;
 }
 
@@ -298,6 +297,12 @@ std::string mjcard::get_need_status() {
 
 //吃碰槓時才利用這func 來讓成對的卡轉移，單純拿到牌的話就用push()就好
 void mjcard::get(int data1,int data2,int data3) {
+	transfer(data1);
+	transfer(data2);
+	_ocard[_ocptr] = data3;
+	_ocptr++;
+
+	/*
 	int nofind = -1;
 	std::vector<int> arr;
 	arr.push_back(data1);
@@ -334,6 +339,7 @@ void mjcard::get(int data1,int data2,int data3) {
 			}
 		}
 	}
+	*/
 }
 
 

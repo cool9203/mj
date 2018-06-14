@@ -26,7 +26,7 @@ void client() {
 
 int main(int argc, char *argv[]) {
 	
-	int card[] = {15,17,17,18,19};
+	int card[] = {15,16,17,18,19};
 	//int card[] = { 31,21,9,16,25,8,11,31,8,15,19,5,8,6,6,6 };
 	//int card[] = { 9,11,13,21,23,27,27 };
 	//int card[17] = { 11,11,11,16,6,7,7,8,9,16,1,3,3,2,4,5,5 }; //0 1 2 3 4 5 6 7 8 9 10 11 ¯u
@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
 	//int card[17] = {3,4,8,9,6,7};
 	/*
 	mjcard mj(card, 5);
+	mj.arrange();
 	mj.set_need_card();
 	while (true) {
 		int m;
